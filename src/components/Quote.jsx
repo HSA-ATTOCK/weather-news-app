@@ -15,7 +15,6 @@ const Quote = () => {
     try {
       setLoading(true);
       setError(null);
-
       setCurrentIcon(quoteIcons[Math.floor(Math.random() * quoteIcons.length)]);
 
       const proxy = "https://corsproxy.io/?";
@@ -28,7 +27,7 @@ const Quote = () => {
 
       setFadeTrigger(true);
       setTimeout(() => {
-        setQuote(data[0]);
+        setQuote(data[0]); // { q: "...", a: "..." }
         setFadeTrigger(false);
       }, 300);
     } catch (err) {
@@ -40,9 +39,39 @@ const Quote = () => {
   };
 
   useEffect(() => {
-    fetchQuote();
+    const quoteIcons = ["🌟", "💬", "📜", "✨", "🔮", "🎯", "🧠", "💡"];
 
-    // Refresh quote every hour
+    const fetchQuote = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setCurrentIcon(
+          quoteIcons[Math.floor(Math.random() * quoteIcons.length)]
+        );
+
+        const proxy = "https://corsproxy.io/?";
+        const url =
+          proxy + encodeURIComponent("https://zenquotes.io/api/random");
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch quote");
+
+        const data = await response.json();
+
+        setFadeTrigger(true);
+        setTimeout(() => {
+          setQuote(data[0]);
+          setFadeTrigger(false);
+        }, 300);
+      } catch (err) {
+        console.error("Quote fetch error:", err);
+        setError("Failed to load quote. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuote();
     const interval = setInterval(fetchQuote, 3600000);
     return () => clearInterval(interval);
   }, []);

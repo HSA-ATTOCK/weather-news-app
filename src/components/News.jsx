@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiExternalLink, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+// import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
 import "../styles/news.css";
 
 const News = () => {
