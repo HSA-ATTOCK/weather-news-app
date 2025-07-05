@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { FiExternalLink } from "react-icons/fi";
 import "../styles/news.css";
 
@@ -13,8 +12,7 @@ const News = () => {
   const [category, setCategory] = useState("general");
   const [country, setCountry] = useState("pk");
 
-  const apiKey = process.env.REACT_APP_GNEWS_KEY;
-  const proxy = "https://corsproxy.io/?";
+  const apiKey = process.env.REACT_APP_NEWSAPI_KEY;
 
   const categories = [
     { value: "general", label: "General" },
@@ -27,18 +25,20 @@ const News = () => {
   ];
 
   const countries = [
-    { value: "pk", label: "Pakistan" },
     { value: "us", label: "USA" },
-    { value: "gb", label: "UK" },
-    { value: "ca", label: "Canada" },
-    { value: "au", label: "Australia" },
-    { value: "in", label: "India" },
+    // { value: "pk", label: "Pakistan" },
+
+    // { value: "gb", label: "UK" },
+    // { value: "ca", label: "Canada" },
+    // { value: "au", label: "Australia" },
+    // { value: "in", label: "India" },
   ];
 
   useEffect(() => {
     const fetchNews = async () => {
       if (!apiKey) {
-        console.warn("API key is missing");
+        setError("API key is missing");
+        setLoading(false);
         return;
       }
 
@@ -47,54 +47,26 @@ const News = () => {
         setError(null);
         setExpandedArticle(null);
 
-        const baseUrl = `https://gnews.io/api/v4`;
+        // NewsAPI.org endpoint
+        const url = `https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&pageSize=10&page=${page}&apiKey=${apiKey}`;
 
-        const localUrl =
-          proxy +
-          encodeURIComponent(
-            `${baseUrl}/top-headlines?category=${category}&country=${country}&max=1&token=${apiKey}`
-          );
+        const response = await fetch(url);
 
-        const globalUrl =
-          proxy +
-          encodeURIComponent(
-            `${baseUrl}/top-headlines?category=${category}&lang=en&token=${apiKey}&max=5&page=${page}`
-          );
-
-        const [localRes, globalRes] = await Promise.all([
-          fetch(localUrl),
-          fetch(globalUrl),
-        ]);
-
-        if (!localRes.ok || !globalRes.ok) {
+        if (!response.ok) {
           throw new Error(
-            "Failed to fetch news because of api key limit or network issue."
+            response.status === 401 ? "Invalid API key" : "Failed to fetch news"
           );
         }
 
-        const localData = await localRes.json();
-        const globalData = await globalRes.json();
+        const data = await response.json();
 
-        const localArticles = localData.articles || [];
-        const globalArticles = globalData.articles || [];
-
-        const combinedArticles = [
-          ...localArticles,
-          ...globalArticles
-            .filter(
-              (article) =>
-                !localArticles.some((local) => local.title === article.title)
-            )
-            .slice(0, 6),
-        ];
-
-        if (combinedArticles.length === 0) {
-          throw new Error("No news available for this category.");
+        if (data.articles.length === 0) {
+          throw new Error("No news available for this category/country.");
         }
 
-        setArticles(combinedArticles);
+        setArticles(data.articles);
       } catch (err) {
-        console.error("❌ Error:", err.message);
+        console.error("Error:", err.message);
         setError(err.message);
         setArticles([]);
       } finally {
@@ -104,7 +76,7 @@ const News = () => {
 
     const timer = setTimeout(() => {
       fetchNews();
-    }, 800); // Delay to avoid hitting rate limit on fast reloads
+    }, 500); // Throttle requests
 
     return () => clearTimeout(timer);
   }, [apiKey, page, category, country]);
@@ -183,9 +155,9 @@ const News = () => {
           animate={{ opacity: 1 }}
         >
           <div className="loading-spinner"></div>
-          <p>Gathering the latest news...</p>
+          <p>Loading news...</p>
         </motion.div>
-      ) : error && articles.length === 0 ? (
+      ) : error ? (
         <motion.div
           className="news-error"
           initial={{ opacity: 0 }}
@@ -225,14 +197,10 @@ const News = () => {
                   </div>
 
                   <div className="article-meta">
-                    {article.source?.name && (
-                      <span className="news-source">{article.source.name}</span>
-                    )}
-                    {article.publishedAt && (
-                      <span className="news-date">
-                        {formatDate(article.publishedAt)}
-                      </span>
-                    )}
+                    <span className="news-source">{article.source?.name}</span>
+                    <span className="news-date">
+                      {formatDate(article.publishedAt)}
+                    </span>
                   </div>
                 </div>
 
@@ -244,10 +212,10 @@ const News = () => {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                     >
-                      {article.image && (
+                      {article.urlToImage && (
                         <div className="article-image-container">
                           <img
-                            src={article.image}
+                            src={article.urlToImage}
                             alt={article.title}
                             className="article-image"
                             onError={(e) => {
@@ -276,7 +244,7 @@ const News = () => {
             ))}
           </div>
 
-          {/* <div className="news-pagination">
+          <div className="news-pagination">
             <motion.button
               className="pagination-btn"
               onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
@@ -284,7 +252,7 @@ const News = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FiChevronLeft /> Previous
+              Previous
             </motion.button>
 
             <span className="page-number">Page {page}</span>
@@ -292,13 +260,13 @@ const News = () => {
             <motion.button
               className="pagination-btn"
               onClick={() => setPage((prev) => prev + 1)}
-              disabled={articles.length < 5}
+              disabled={articles.length < 10}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Next <FiChevronRight />
+              Next
             </motion.button>
-          </div> */}
+          </div>
         </>
       )}
     </motion.div>
