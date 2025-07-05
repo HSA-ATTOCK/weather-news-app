@@ -195,7 +195,7 @@ const News = () => {
             </select>
           </div>
 
-          <button
+          {/* <button
             onClick={toggleDarkMode}
             className={`dark-mode-toggle ${darkMode ? "dark" : ""}`}
             aria-label={
@@ -203,7 +203,7 @@ const News = () => {
             }
           >
             {darkMode ? <FiSun /> : <FiMoon />}
-          </button>
+          </button> */}
         </div>
       </div>
 
