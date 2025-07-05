@@ -10,7 +10,6 @@ const News = () => {
   const [page, setPage] = useState(1);
   const [expandedArticle, setExpandedArticle] = useState(null);
   const [category, setCategory] = useState("general");
-  const [country, setCountry] = useState("pk");
 
   const apiKey = process.env.REACT_APP_NEWSAPI_KEY;
 
@@ -22,16 +21,6 @@ const News = () => {
     { value: "health", label: "Health" },
     { value: "sports", label: "Sports" },
     { value: "entertainment", label: "Entertainment" },
-  ];
-
-  const countries = [
-    { value: "us", label: "USA" },
-    // { value: "pk", label: "Pakistan" },
-
-    // { value: "gb", label: "UK" },
-    // { value: "ca", label: "Canada" },
-    // { value: "au", label: "Australia" },
-    // { value: "in", label: "India" },
   ];
 
   useEffect(() => {
@@ -47,8 +36,8 @@ const News = () => {
         setError(null);
         setExpandedArticle(null);
 
-        // NewsAPI.org endpoint
-        const url = `https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&pageSize=10&page=${page}&apiKey=${apiKey}`;
+        // Only USA news
+        const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=10&page=${page}&apiKey=${apiKey}`;
 
         const response = await fetch(url);
 
@@ -61,7 +50,7 @@ const News = () => {
         const data = await response.json();
 
         if (data.articles.length === 0) {
-          throw new Error("No news available for this category/country.");
+          throw new Error("No news available for this category.");
         }
 
         setArticles(data.articles);
@@ -79,7 +68,7 @@ const News = () => {
     }, 500); // Throttle requests
 
     return () => clearTimeout(timer);
-  }, [apiKey, page, category, country]);
+  }, [apiKey, page, category]);
 
   const toggleExpandArticle = (index) => {
     setExpandedArticle(expandedArticle === index ? null : index);
@@ -112,7 +101,7 @@ const News = () => {
           >
             📰
           </motion.span>
-          Latest News
+          US News
         </h2>
 
         <div className="news-filters">
@@ -130,21 +119,6 @@ const News = () => {
               </option>
             ))}
           </select>
-
-          <select
-            value={country}
-            onChange={(e) => {
-              setCountry(e.target.value);
-              setPage(1);
-            }}
-            className="filter-select"
-          >
-            {countries.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -155,7 +129,7 @@ const News = () => {
           animate={{ opacity: 1 }}
         >
           <div className="loading-spinner"></div>
-          <p>Loading news...</p>
+          <p>Loading US news...</p>
         </motion.div>
       ) : error ? (
         <motion.div
