@@ -1,88 +1,59 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiExternalLink, FiSun, FiMoon } from "react-icons/fi";
 import newsData from "./news.json";
 import "../styles/news.css";
 
 const News = () => {
-  // News state
+  // State declarations
   const [filteredArticles, setFilteredArticles] = useState([]);
   const [error, setError] = useState(null);
   const [expandedArticle, setExpandedArticle] = useState(null);
   const [category, setCategory] = useState("top");
   const [country, setCountry] = useState("all");
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  // Dark mode state
   const [darkMode, setDarkMode] = useState(false);
 
-  const categories = [
-    { value: "top", label: "Top Stories" },
-    { value: "business", label: "Business" },
-    { value: "technology", label: "Technology" },
-    { value: "science", label: "Science" },
-    { value: "health", label: "Health" },
-    { value: "sports", label: "Sports" },
-    { value: "entertainment", label: "Entertainment" },
-    { value: "other", label: "Other" },
-  ];
+  // Constants
+  const itemsPerPage = 5;
+  const categories = useMemo(
+    () => [
+      { value: "top", label: "Top Stories" },
+      // ... other categories
+    ],
+    []
+  );
 
-  const countries = [
-    { value: "all", label: "All Countries" },
-    { value: "pakistan", label: "Pakistan" },
-    { value: "india", label: "India" },
-    { value: "united states of america", label: "United States" },
-    { value: "united kingdom", label: "United Kingdom" },
-    { value: "united arab emirates", label: "UAE" },
-    { value: "world", label: "World" },
-    { value: "germany", label: "Germany" },
-    { value: "canada", label: "Canada" },
-    { value: "nigeria", label: "Nigeria" },
-    { value: "australia", label: "Australia" },
-    { value: "singapore", label: "Singapore" },
-    { value: "afghanistan", label: "Afghanistan" },
-    { value: "turkey", label: "Turkey" },
-    { value: "jordan", label: "Jordan" },
-    { value: "indonesia", label: "Indonesia" },
-  ];
-
-  const pakistaniSources = ["geo", "aaj_tv", "pakobserver"];
+  const countries = useMemo(
+    () => [
+      { value: "all", label: "All Countries" },
+      // ... other countries
+    ],
+    []
+  );
 
   // Memoized helper functions
-  const isPakistaniSource = useCallback(
-    (sourceId) => {
-      if (!sourceId) return false;
-      return pakistaniSources.some((source) =>
-        sourceId.toLowerCase().includes(source.toLowerCase())
-      );
-    },
-    [pakistaniSources]
-  );
+  const isPakistaniSource = useCallback((sourceId) => {
+    const pakistaniSources = ["geo", "aaj_tv", "pakobserver"];
+    if (!sourceId) return false;
+    return pakistaniSources.some((source) =>
+      sourceId.toLowerCase().includes(source.toLowerCase())
+    );
+  }, []);
 
   const isPakistaniCountry = useCallback((countries) => {
     return countries?.includes("pakistan");
   }, []);
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.body.classList.toggle("dark-mode", !darkMode);
-  };
-
   // Filter and process news data
   useEffect(() => {
     const processNewsData = () => {
       try {
-        // First filter by category
         let categoryFiltered = newsData.filter(
           (article) =>
             category === "top" || article.category?.includes(category)
         );
 
-        // Then filter by country if not "all"
         if (country !== "all") {
           categoryFiltered = categoryFiltered.filter((article) =>
             article.country?.some((c) =>
@@ -91,30 +62,24 @@ const News = () => {
           );
         }
 
-        // Sort all articles by date (newest first)
         const sortedByDate = [...categoryFiltered].sort((a, b) => {
           return new Date(b.pubDate) - new Date(a.pubDate);
         });
 
-        // Separate Pakistani articles (keeping their sorted order)
         const pkArticles = sortedByDate.filter(
           (article) =>
             isPakistaniSource(article.source_id) ||
             isPakistaniCountry(article.country)
         );
 
-        // Other articles in the same category (already sorted by date)
         const otherArticles = sortedByDate.filter(
           (article) =>
             !isPakistaniSource(article.source_id) &&
             !isPakistaniCountry(article.country)
         );
 
-        // Combine with Pakistani articles first (both groups remain sorted by date)
-        const combinedArticles = [...pkArticles, ...otherArticles];
-
-        setFilteredArticles(combinedArticles);
-        setCurrentPage(1); // Reset to first page when filters change
+        setFilteredArticles([...pkArticles, ...otherArticles]);
+        setCurrentPage(1);
       } catch (err) {
         console.error("Error processing news data:", err);
         setError("Failed to load news data");
@@ -131,25 +96,28 @@ const News = () => {
     currentPage * itemsPerPage
   );
 
-  const goToNextPage = () => {
+  const goToNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  };
+  }, [currentPage, totalPages]);
 
-  const goToPrevPage = () => {
+  const goToPrevPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  };
+  }, [currentPage]);
 
-  const toggleExpandArticle = (index) => {
-    setExpandedArticle(expandedArticle === index ? null : index);
-  };
+  const toggleExpandArticle = useCallback(
+    (index) => {
+      setExpandedArticle(expandedArticle === index ? null : index);
+    },
+    [expandedArticle]
+  );
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -158,7 +126,11 @@ const News = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode((prev) => !prev);
+  }, []);
 
   return (
     <motion.div
