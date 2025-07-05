@@ -1,4 +1,5 @@
 :root {
+  /* Light Mode Colors */
   --primary: #4361ee;
   --secondary: #3f37c9;
   --accent: #4895ef;
@@ -9,12 +10,29 @@
   --card-bg: rgba(255, 255, 255, 0.9);
   --text-main: #2b2d42;
   --text-secondary: #8d99ae;
+  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+}
+
+/* Dark Mode Colors */
+.dark-mode {
+  --primary: #4895ef;
+  --secondary: #4361ee;
+  --accent: #3f37c9;
+  --dark: #f8f9fa;
+  --light: #1b263b;
+  --success: #4cc9f0;
+  --warning: #f72585;
+  --card-bg: rgba(27, 38, 59, 0.9);
+  --text-main: #e9ecef;
+  --text-secondary: #adb5bd;
+  --bg-gradient: linear-gradient(135deg, #1b263b 0%, #0d1b2a 100%);
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
@@ -22,7 +40,7 @@ body {
     Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.7;
   color: var(--text-main);
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  background: var(--bg-gradient);
   min-height: 100vh;
   padding: 2rem;
 }
@@ -32,14 +50,17 @@ body {
   margin: 0 auto;
 }
 
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
 .dashboard-title {
   font-size: 2.5rem;
-  text-align: center;
-  margin-bottom: 2rem;
   color: var(--dark);
   position: relative;
-  display: inline-block;
-  width: 100%;
 }
 
 .dashboard-title::after {
@@ -48,8 +69,29 @@ body {
   width: 100px;
   height: 4px;
   background: linear-gradient(to right, var(--primary), var(--secondary));
-  margin: 0.5rem auto 0;
+  margin: 0.5rem 0 0;
   border-radius: 2px;
+}
+
+.dark-mode-toggle {
+  background: none;
+  border: none;
+  color: var(--dark);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .dark-mode-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dashboard-grid {
@@ -57,12 +99,11 @@ body {
   gap: 2rem;
 }
 
-/* ✅ FIX: Prevent Weather and News from syncing height */
 .horizontal-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 2rem;
-  align-items: start; /* This ensures each card grows independently */
+  align-items: start;
 }
 
 /* Animations */
@@ -103,6 +144,7 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
 @media (max-width: 480px) {
   .dashboard-title {
     font-size: 1.5rem;
