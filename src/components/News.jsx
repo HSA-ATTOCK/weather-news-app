@@ -1,74 +1,145 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiSun, FiMoon } from "react-icons/fi";
+import newsData from "./news.json";
 import "../styles/news.css";
 
 const News = () => {
-  const [articles, setArticles] = useState([]);
+  // News state
+  const [filteredArticles, setFilteredArticles] = useState([]);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [expandedArticle, setExpandedArticle] = useState(null);
-  const [category, setCategory] = useState("general");
+  const [category, setCategory] = useState("top");
+  const [country, setCountry] = useState("all");
 
-  const apiKey = process.env.REACT_APP_NEWSAPI_KEY;
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Dark mode state
+  const [darkMode, setDarkMode] = useState(false);
 
   const categories = [
-    { value: "general", label: "General" },
+    { value: "top", label: "Top Stories" },
     { value: "business", label: "Business" },
-    { value: "technology", label: "Tech" },
+    { value: "technology", label: "Technology" },
     { value: "science", label: "Science" },
     { value: "health", label: "Health" },
     { value: "sports", label: "Sports" },
     { value: "entertainment", label: "Entertainment" },
+    { value: "other", label: "Other" },
   ];
 
+  const countries = [
+    { value: "all", label: "All Countries" },
+    { value: "pakistan", label: "Pakistan" },
+    { value: "india", label: "India" },
+    { value: "united states of america", label: "United States" },
+    { value: "united kingdom", label: "United Kingdom" },
+    { value: "united arab emirates", label: "UAE" },
+    { value: "world", label: "World" },
+    { value: "germany", label: "Germany" },
+    { value: "canada", label: "Canada" },
+    { value: "nigeria", label: "Nigeria" },
+    { value: "australia", label: "Australia" },
+    { value: "singapore", label: "Singapore" },
+    { value: "afghanistan", label: "Afghanistan" },
+    { value: "turkey", label: "Turkey" },
+    { value: "jordan", label: "Jordan" },
+    { value: "indonesia", label: "Indonesia" },
+  ];
+
+  const pakistaniSources = ["geo", "aaj_tv", "pakobserver"];
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.body.classList.toggle("dark-mode", !darkMode);
+  };
+
+  // Filter and process news data
   useEffect(() => {
-    const fetchNews = async () => {
-      if (!apiKey) {
-        setError("API key is missing");
-        setLoading(false);
-        return;
-      }
-
+    const processNewsData = () => {
       try {
-        setLoading(true);
-        setError(null);
-        setExpandedArticle(null);
+        // First filter by category
+        let categoryFiltered = newsData.filter(
+          (article) =>
+            category === "top" || article.category?.includes(category)
+        );
 
-        // Only USA news
-        const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=10&page=${page}&apiKey=${apiKey}`;
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(
-            response.status === 401 ? "Invalid API key" : "Failed to fetch news"
+        // Then filter by country if not "all"
+        if (country !== "all") {
+          categoryFiltered = categoryFiltered.filter((article) =>
+            article.country?.some((c) =>
+              c.toLowerCase().includes(country.toLowerCase())
+            )
           );
         }
 
-        const data = await response.json();
+        // Sort all articles by date (newest first)
+        const sortedByDate = [...categoryFiltered].sort((a, b) => {
+          return new Date(b.pubDate) - new Date(a.pubDate);
+        });
 
-        if (data.articles.length === 0) {
-          throw new Error("No news available for this category.");
-        }
+        // Separate Pakistani articles (keeping their sorted order)
+        const pkArticles = sortedByDate.filter(
+          (article) =>
+            isPakistaniSource(article.source_id) ||
+            isPakistaniCountry(article.country)
+        );
 
-        setArticles(data.articles);
+        // Other articles in the same category (already sorted by date)
+        const otherArticles = sortedByDate.filter(
+          (article) =>
+            !isPakistaniSource(article.source_id) &&
+            !isPakistaniCountry(article.country)
+        );
+
+        // Combine with Pakistani articles first (both groups remain sorted by date)
+        const combinedArticles = [...pkArticles, ...otherArticles];
+
+        setFilteredArticles(combinedArticles);
+        setCurrentPage(1); // Reset to first page when filters change
       } catch (err) {
-        console.error("Error:", err.message);
-        setError(err.message);
-        setArticles([]);
-      } finally {
-        setLoading(false);
+        console.error("Error processing news data:", err);
+        setError("Failed to load news data");
       }
     };
 
-    const timer = setTimeout(() => {
-      fetchNews();
-    }, 500); // Throttle requests
+    processNewsData();
+  }, [category, country]);
 
-    return () => clearTimeout(timer);
-  }, [apiKey, page, category]);
+  const isPakistaniSource = (sourceId) => {
+    if (!sourceId) return false;
+    return pakistaniSources.some((source) =>
+      sourceId.toLowerCase().includes(source.toLowerCase())
+    );
+  };
+
+  const isPakistaniCountry = (countries) => {
+    return countries?.includes("pakistan");
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+  const currentArticles = filteredArticles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const toggleExpandArticle = (index) => {
     setExpandedArticle(expandedArticle === index ? null : index);
@@ -87,7 +158,7 @@ const News = () => {
 
   return (
     <motion.div
-      className="news-card"
+      className={`news-card ${darkMode ? "dark-mode" : ""}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -101,146 +172,184 @@ const News = () => {
           >
             📰
           </motion.span>
-          US News
+          Latest News
         </h2>
 
         <div className="news-filters">
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-            className="filter-select"
+          <div className="filter-group">
+            <label htmlFor="category-filter">Category:</label>
+            <select
+              id="category-filter"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className={`filter-select ${darkMode ? "dark" : ""}`}
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="country-filter">Country:</label>
+            <select
+              id="country-filter"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className={`filter-select ${darkMode ? "dark" : ""}`}
+            >
+              {countries.map((country) => (
+                <option key={country.value} value={country.value}>
+                  {country.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={toggleDarkMode}
+            className={`dark-mode-toggle ${darkMode ? "dark" : ""}`}
+            aria-label={
+              darkMode ? "Switch to light mode" : "Switch to dark mode"
+            }
           >
-            {categories.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
+            {darkMode ? <FiSun /> : <FiMoon />}
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <motion.div
-          className="news-loading"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <div className="loading-spinner"></div>
-          <p>Loading US news...</p>
-        </motion.div>
-      ) : error ? (
+      {error ? (
         <motion.div
           className="news-error"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           {error}
-          <button
-            className="retry-button"
-            onClick={() => {
-              setPage(1);
-              setError(null);
-            }}
-          >
-            Try Again
-          </button>
         </motion.div>
       ) : (
         <>
           <div className="news-list">
-            {articles.map((article, index) => (
-              <motion.div
-                className={`news-item ${
-                  expandedArticle === index ? "expanded" : ""
-                }`}
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <div
-                  className="news-link"
-                  onClick={() => toggleExpandArticle(index)}
-                >
-                  <div className="article-header">
-                    <h3 className="article-title">{article.title}</h3>
-                    <FiExternalLink className="external-icon" />
-                  </div>
+            {currentArticles.length > 0 ? (
+              currentArticles.map((article, index) => {
+                const globalIndex = (currentPage - 1) * itemsPerPage + index;
+                const isPakistani =
+                  isPakistaniSource(article.source_id) ||
+                  isPakistaniCountry(article.country);
 
-                  <div className="article-meta">
-                    <span className="news-source">{article.source?.name}</span>
-                    <span className="news-date">
-                      {formatDate(article.publishedAt)}
-                    </span>
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {expandedArticle === index && (
-                    <motion.div
-                      className="article-expanded"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
+                return (
+                  <motion.div
+                    className={`news-item ${
+                      expandedArticle === globalIndex ? "expanded" : ""
+                    } ${isPakistani ? "pakistani-news" : ""}`}
+                    key={`${globalIndex}-${article.article_id}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <div
+                      className="news-link"
+                      onClick={() => toggleExpandArticle(globalIndex)}
                     >
-                      {article.urlToImage && (
-                        <div className="article-image-container">
-                          <img
-                            src={article.urlToImage}
-                            alt={article.title}
-                            className="article-image"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
-                          />
-                        </div>
+                      {isPakistani && (
+                        <div className="pakistani-label">Pakistan</div>
                       )}
-                      <p className="article-description">
-                        {article.description || "No description available."}
-                      </p>
-                      <div className="article-actions">
-                        <a
-                          href={article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="read-more-btn"
-                        >
-                          Read Full Story <FiExternalLink />
-                        </a>
+                      <div className="article-header">
+                        <h3 className="article-title">{article.title}</h3>
+                        <FiExternalLink className="external-icon" />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+
+                      <div className="article-meta">
+                        <span className="news-source">
+                          {article.source_name || article.source_id}
+                        </span>
+                        <span className="news-date">
+                          {formatDate(article.pubDate)}
+                        </span>
+                        {article.country && (
+                          <span className="news-country">
+                            {article.country.join(", ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {expandedArticle === globalIndex && (
+                        <motion.div
+                          className="article-expanded"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                        >
+                          {article.image_url && (
+                            <div className="article-image-container">
+                              <img
+                                src={article.image_url}
+                                alt={article.title}
+                                className="article-image"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                }}
+                              />
+                            </div>
+                          )}
+                          <p className="article-description">
+                            {article.description || "No description available."}
+                          </p>
+                          {article.keywords && (
+                            <div className="article-keywords">
+                              <strong>Keywords:</strong>{" "}
+                              {article.keywords.join(", ")}
+                            </div>
+                          )}
+                          <div className="article-actions">
+                            <a
+                              href={article.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="read-more-btn"
+                            >
+                              Read Full Story <FiExternalLink />
+                            </a>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="no-articles">
+                No articles found for these filters.
+              </div>
+            )}
           </div>
 
-          <div className="news-pagination">
-            <motion.button
-              className="pagination-btn"
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Previous
-            </motion.button>
+          {filteredArticles.length > itemsPerPage && (
+            <div className="pagination-controls">
+              <button
+                onClick={goToPrevPage}
+                disabled={currentPage === 1}
+                className={`pagination-button ${darkMode ? "dark" : ""}`}
+              >
+                Previous
+              </button>
 
-            <span className="page-number">Page {page}</span>
+              <span className="page-indicator">
+                Page {currentPage} of {totalPages}
+              </span>
 
-            <motion.button
-              className="pagination-btn"
-              onClick={() => setPage((prev) => prev + 1)}
-              disabled={articles.length < 10}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Next
-            </motion.button>
-          </div>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`pagination-button ${darkMode ? "dark" : ""}`}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
     </motion.div>
