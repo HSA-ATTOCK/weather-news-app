@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiExternalLink, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import "../styles/news.css";
 
 const News = () => {
@@ -6,133 +8,297 @@ const News = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [expandedArticle, setExpandedArticle] = useState(null);
+  const [category, setCategory] = useState("general");
+  const [country, setCountry] = useState("pk");
 
   const apiKey = process.env.REACT_APP_GNEWS_KEY;
   const proxy = "https://corsproxy.io/?";
-  const keyword = "world";
+
+  const categories = [
+    { value: "general", label: "General" },
+    { value: "business", label: "Business" },
+    { value: "technology", label: "Tech" },
+    { value: "science", label: "Science" },
+    { value: "health", label: "Health" },
+    { value: "sports", label: "Sports" },
+    { value: "entertainment", label: "Entertainment" },
+  ];
+
+  const countries = [
+    { value: "pk", label: "Pakistan" },
+    { value: "us", label: "USA" },
+    { value: "gb", label: "UK" },
+    { value: "ca", label: "Canada" },
+    { value: "au", label: "Australia" },
+    { value: "in", label: "India" },
+  ];
 
   useEffect(() => {
     const fetchNews = async () => {
-      if (!apiKey) return;
+      if (!apiKey) {
+        console.warn("API key is missing");
+        return;
+      }
 
       try {
         setLoading(true);
         setError(null);
+        setExpandedArticle(null);
 
         const baseUrl = `https://gnews.io/api/v4`;
 
-        // Pakistani news on page 1 only
-        let pakistaniArticle = null;
-        if (page === 1) {
-          const pkUrl =
-            proxy +
-            encodeURIComponent(
-              `${baseUrl}/top-headlines?lang=en&country=pk&max=1&token=${apiKey}`
-            );
-          const pkRes = await fetch(pkUrl);
-          if (pkRes.ok) {
-            const pkData = await pkRes.json();
-            pakistaniArticle = pkData.articles?.[0] || null;
-          }
-        }
+        const localUrl =
+          proxy +
+          encodeURIComponent(
+            `${baseUrl}/top-headlines?category=${category}&country=${country}&max=1&token=${apiKey}`
+          );
 
-        // Global news
         const globalUrl =
           proxy +
           encodeURIComponent(
-            `${baseUrl}/search?q=${keyword}&lang=en&token=${apiKey}&max=5&page=${page}`
+            `${baseUrl}/top-headlines?category=${category}&lang=en&token=${apiKey}&max=5&page=${page}`
           );
-        const globalRes = await fetch(globalUrl);
-        if (!globalRes.ok) throw new Error("Failed to fetch global news");
 
+        const [localRes, globalRes] = await Promise.all([
+          fetch(localUrl),
+          fetch(globalUrl),
+        ]);
+
+        if (!localRes.ok || !globalRes.ok) {
+          throw new Error("Failed to fetch news");
+        }
+
+        const localData = await localRes.json();
         const globalData = await globalRes.json();
 
-        const filteredGlobal = globalData.articles.filter(
-          (article) => article.title !== pakistaniArticle?.title
-        );
+        const localArticles = localData.articles || [];
+        const globalArticles = globalData.articles || [];
 
-        const combinedArticles =
-          page === 1 && pakistaniArticle
-            ? [pakistaniArticle, ...filteredGlobal]
-            : filteredGlobal;
+        const combinedArticles = [
+          ...localArticles,
+          ...globalArticles
+            .filter(
+              (article) =>
+                !localArticles.some((local) => local.title === article.title)
+            )
+            .slice(0, 6),
+        ];
 
         if (combinedArticles.length === 0) {
-          throw new Error("No news available.");
+          throw new Error("No news available for this category.");
         }
 
         setArticles(combinedArticles);
       } catch (err) {
         console.error("❌ Error:", err.message);
-        setError("⚠️ Failed to load news.");
+        setError(err.message);
         setArticles([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNews();
-  }, [apiKey, page]);
+    const timer = setTimeout(() => {
+      fetchNews();
+    }, 800); // Delay to avoid hitting rate limit on fast reloads
+
+    return () => clearTimeout(timer);
+  }, [apiKey, page, category, country]);
+
+  const toggleExpandArticle = (index) => {
+    setExpandedArticle(expandedArticle === index ? null : index);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
-    <div className="news-card">
+    <motion.div
+      className="news-card"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="news-header">
         <h2 className="news-title">
-          <span className="news-icon">📰</span> News
+          <motion.span
+            className="news-icon"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+          >
+            📰
+          </motion.span>
+          Latest News
         </h2>
+
+        <div className="news-filters">
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPage(1);
+            }}
+            className="filter-select"
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={country}
+            onChange={(e) => {
+              setCountry(e.target.value);
+              setPage(1);
+            }}
+            className="filter-select"
+          >
+            {countries.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
-        <div className="news-loading">
+        <motion.div
+          className="news-loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           <div className="loading-spinner"></div>
-          Loading news...
-        </div>
+          <p>Gathering the latest news...</p>
+        </motion.div>
       ) : error && articles.length === 0 ? (
-        <div className="news-error">{error}</div>
+        <motion.div
+          className="news-error"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {error}
+          <button
+            className="retry-button"
+            onClick={() => {
+              setPage(1);
+              setError(null);
+            }}
+          >
+            Try Again
+          </button>
+        </motion.div>
       ) : (
         <>
           <div className="news-list">
             {articles.map((article, index) => (
-              <div className="news-item" key={index}>
-                <a
-                  href={article.url}
+              <motion.div
+                className={`news-item ${
+                  expandedArticle === index ? "expanded" : ""
+                }`}
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div
                   className="news-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={() => toggleExpandArticle(index)}
                 >
-                  {article.title}
-                  {article.source?.name && (
-                    <span className="news-source">{article.source.name}</span>
+                  <div className="article-header">
+                    <h3 className="article-title">{article.title}</h3>
+                    <FiExternalLink className="external-icon" />
+                  </div>
+
+                  <div className="article-meta">
+                    {article.source?.name && (
+                      <span className="news-source">{article.source.name}</span>
+                    )}
+                    {article.publishedAt && (
+                      <span className="news-date">
+                        {formatDate(article.publishedAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {expandedArticle === index && (
+                    <motion.div
+                      className="article-expanded"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      {article.image && (
+                        <div className="article-image-container">
+                          <img
+                            src={article.image}
+                            alt={article.title}
+                            className="article-image"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      <p className="article-description">
+                        {article.description || "No description available."}
+                      </p>
+                      <div className="article-actions">
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="read-more-btn"
+                        >
+                          Read Full Story <FiExternalLink />
+                        </a>
+                      </div>
+                    </motion.div>
                   )}
-                  {article.publishedAt && (
-                    <span className="news-date">
-                      {new Date(article.publishedAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </a>
-              </div>
+                </AnimatePresence>
+              </motion.div>
             ))}
           </div>
 
-          <div className="news-pagination">
-            <button
+          {/* <div className="news-pagination">
+            <motion.button
               className="pagination-btn"
               onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
               disabled={page === 1}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              ⬅ Back
-            </button>
+              <FiChevronLeft /> Previous
+            </motion.button>
+
             <span className="page-number">Page {page}</span>
-            <button
+
+            <motion.button
               className="pagination-btn"
               onClick={() => setPage((prev) => prev + 1)}
-              disabled={page === 2}
+              disabled={articles.length < 5}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Next ➡
-            </button>
-          </div>
+              Next <FiChevronRight />
+            </motion.button>
+          </div> */}
         </>
       )}
-    </div>
+    </motion.div>
   );
 };
 

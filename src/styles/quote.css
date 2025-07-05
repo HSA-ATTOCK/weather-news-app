@@ -1,112 +1,159 @@
 /* Quote.css */
 .quote-card {
-  background: var(--card-bg);
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s ease;
-  animation: fadeIn 0.6s ease-out 0.6s both;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  color: white;
   position: relative;
   overflow: hidden;
-  grid-column: 1 / -1;
-}
-
-.quote-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
 }
 
 .quote-card::before {
   content: "";
   position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(76, 201, 240, 0.1) 0%,
-    rgba(0, 0, 0, 0) 70%
-  );
-  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 0;
 }
 
 .quote-header {
-  margin-bottom: 1.5rem;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .quote-title {
   font-size: 1.8rem;
   font-weight: 600;
-  color: var(--dark);
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.8rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .quote-icon {
   font-size: 2rem;
-  color: var(--success);
+}
+
+.refresh-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  backdrop-filter: blur(5px);
+}
+
+.refresh-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.quote-error {
+  background: rgba(255, 59, 48, 0.2);
+  backdrop-filter: blur(5px);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.quote-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
 }
 
 .quote-content {
   font-size: 1.5rem;
   line-height: 1.6;
-  color: var(--text-main);
   font-style: italic;
+  margin-bottom: 1.5rem;
   position: relative;
-  padding: 2rem;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
   text-align: center;
-}
-
-.quote-content::before,
-.quote-content::after {
-  content: '"';
-  font-size: 4rem;
-  color: rgba(67, 97, 238, 0.1);
-  position: absolute;
-  font-family: serif;
-  line-height: 1;
-}
-
-.quote-content::before {
-  top: 0;
-  left: 0;
-}
-
-.quote-content::after {
-  bottom: -2rem;
-  right: 0;
+  padding: 0 1rem;
 }
 
 .quote-author {
-  text-align: right;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--primary);
-  margin-top: 1.5rem;
+  text-align: right;
   position: relative;
+  z-index: 1;
   padding-right: 2rem;
 }
 
-.quote-author::before {
-  content: "— ";
+.quote-footer {
+  margin-top: auto;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .quote-content {
-    font-size: 1.2rem;
+  .quote-card {
     padding: 1.5rem;
   }
 
-  .quote-content::before,
-  .quote-content::after {
-    font-size: 3rem;
+  .quote-title {
+    font-size: 1.5rem;
+  }
+
+  .quote-content {
+    font-size: 1.2rem;
+    padding: 0;
+  }
+
+  .quote-author {
+    font-size: 1rem;
   }
 }
