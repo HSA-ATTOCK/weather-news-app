@@ -12,7 +12,18 @@ const News = () => {
   const [category, setCategory] = useState("top");
   const [country, setCountry] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Check for saved preference or use system preference
+    const savedMode = localStorage.getItem("darkMode");
+    if (savedMode !== null) return JSON.parse(savedMode);
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  // Apply dark mode class to body on mount and when darkMode changes
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+  }, [darkMode]);
 
   // Constants
   const itemsPerPage = 5;
@@ -134,7 +145,7 @@ const News = () => {
 
   return (
     <motion.div
-      className={`news-card ${darkMode ? "dark-mode" : ""}`}
+      className={`news-card ${darkMode ? "dark" : ""}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -218,7 +229,9 @@ const News = () => {
                   <motion.div
                     className={`news-item ${
                       expandedArticle === globalIndex ? "expanded" : ""
-                    } ${isPakistani ? "pakistani-news" : ""}`}
+                    } ${isPakistani ? "pakistani-news" : ""} ${
+                      darkMode ? "dark" : ""
+                    }`}
                     key={`${globalIndex}-${article.article_id}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -297,14 +310,14 @@ const News = () => {
                 );
               })
             ) : (
-              <div className="no-articles">
+              <div className={`no-articles ${darkMode ? "dark" : ""}`}>
                 No articles found for these filters.
               </div>
             )}
           </div>
 
           {filteredArticles.length > itemsPerPage && (
-            <div className="pagination-controls">
+            <div className={`pagination-controls ${darkMode ? "dark" : ""}`}>
               <button
                 onClick={goToPrevPage}
                 disabled={currentPage === 1}
