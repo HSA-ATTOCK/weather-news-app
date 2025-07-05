@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiExternalLink, FiSun, FiMoon } from "react-icons/fi";
 import newsData from "./news.json";
@@ -50,6 +50,21 @@ const News = () => {
   ];
 
   const pakistaniSources = ["geo", "aaj_tv", "pakobserver"];
+
+  // Memoized helper functions
+  const isPakistaniSource = useCallback(
+    (sourceId) => {
+      if (!sourceId) return false;
+      return pakistaniSources.some((source) =>
+        sourceId.toLowerCase().includes(source.toLowerCase())
+      );
+    },
+    [pakistaniSources]
+  );
+
+  const isPakistaniCountry = useCallback((countries) => {
+    return countries?.includes("pakistan");
+  }, []);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -107,18 +122,7 @@ const News = () => {
     };
 
     processNewsData();
-  }, [category, country]);
-
-  const isPakistaniSource = (sourceId) => {
-    if (!sourceId) return false;
-    return pakistaniSources.some((source) =>
-      sourceId.toLowerCase().includes(source.toLowerCase())
-    );
-  };
-
-  const isPakistaniCountry = (countries) => {
-    return countries?.includes("pakistan");
-  };
+  }, [category, country, isPakistaniSource, isPakistaniCountry]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
