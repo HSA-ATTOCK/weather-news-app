@@ -506,6 +506,38 @@
   font-weight: 600;
 }
 
+.hourly-forecast-items::-webkit-scrollbar {
+  height: 8px;
+}
+
+.hourly-forecast-items::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.hourly-forecast-items::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.hourly-forecast-items::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark theme scrollbar styles */
+.dark .hourly-forecast-items::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .hourly-forecast-items::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .hourly-forecast-items::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .weather-tooltip {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 10px;

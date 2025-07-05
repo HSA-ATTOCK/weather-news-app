@@ -67,7 +67,9 @@ const News = () => {
         ]);
 
         if (!localRes.ok || !globalRes.ok) {
-          throw new Error("Failed to fetch news");
+          throw new Error(
+            "Failed to fetch news because of api key limit or network issue."
+          );
         }
 
         const localData = await localRes.json();
