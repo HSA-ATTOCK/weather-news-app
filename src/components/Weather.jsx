@@ -1,9 +1,19 @@
 import React, { useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import "../styles/weather.css";
 
 const Weather = () => {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
+  const [forecast, setForecast] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -15,24 +25,87 @@ const Weather = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${city.trim()}&units=metric&appid=${apiKey}`
+
+      // Current weather
+      const currentRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`
       );
+      if (!currentRes.ok) throw new Error("City not found");
 
-      if (!res.ok) {
-        throw new Error(
-          res.status === 404 ? "City not found" : "Weather data unavailable"
+      const currentData = await currentRes.json();
+      setWeather(currentData);
+
+      // Forecast data
+      const forecastRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${apiKey}`
+      );
+      if (!forecastRes.ok) throw new Error("Forecast data not available");
+
+      const forecastData = await forecastRes.json();
+
+      // Group forecast by day and calculate average temp
+      const dailyMap = {};
+      forecastData.list.forEach((item) => {
+        const date = item.dt_txt.split(" ")[0];
+        if (!dailyMap[date]) dailyMap[date] = [];
+        dailyMap[date].push(item.main.temp);
+      });
+
+      const summarized = Object.entries(dailyMap).map(([date, temps]) => {
+        const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+
+        const dayEntries = forecastData.list.filter((item) =>
+          item.dt_txt.startsWith(date)
         );
-      }
+        const condition = dayEntries[0]?.weather[0]?.main || "Clear";
 
-      const data = await res.json();
-      setWeather(data);
+        const conditionEmoji = {
+          Clear: "☀️",
+          Rain: "🌧️",
+          Clouds: "☁️",
+          Snow: "❄️",
+          Thunderstorm: "🌩️",
+          Drizzle: "🌦️",
+          Mist: "🌫️",
+        };
+
+        return {
+          date: new Date(date).toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          }),
+          temperature: parseFloat(avg.toFixed(1)),
+          condition,
+          emoji: conditionEmoji[condition] || "🌈",
+        };
+      });
+
+      // Take next 4-5 days (excluding today if needed)
+      setForecast(summarized.slice(0, 5));
     } catch (err) {
       setError(err.message);
       setWeather(null);
+      setForecast([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="weather-tooltip">
+          <strong>{label}</strong>
+          <p>
+            {data.emoji} {data.condition}
+          </p>
+          <p>🌡 {data.temperature}°C</p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -93,15 +166,30 @@ const Weather = () => {
                   <span className="weather-detail-value">
                     {weather.wind.speed} m/s
                   </span>
-                  {/* for wind in km/h, you can uncomment the span below */}
-                  {/* and comment the above span */}
-                  {/* <span className="weather-detail-value">
-                    {(weather.wind.speed * 3.6).toFixed(1)} km/h
-                  </span> */}
                 </div>
               </div>
             </div>
           </div>
+
+          {forecast.length > 0 && (
+            <div className="weather-forecast">
+              <h4>📊 5-Day Forecast</h4>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={forecast}>
+                  <CartesianGrid stroke="#ccc" />
+                  <XAxis dataKey="date" />
+                  <YAxis unit="°C" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="temperature"
+                    stroke="#007BFF"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
     </div>
